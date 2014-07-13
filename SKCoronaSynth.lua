@@ -24,7 +24,6 @@ local MIDI = require("MIDI")  -- http://www.pjb.com.au/comp/lua/MIDI.html#play_s
 
 local SKCoronaSynth = {}
 SKCoronaSynth.synths = {}
-SKCoronaSynth.BPM = {}
 SKCoronaSynth.durations = {}
 SKCoronaSynth.sounds = {}
 SKCoronaSynth.isOn = false
@@ -314,6 +313,28 @@ function SKCoronaSynth:newSynth(mySampleFile, sampleFrequency)
     return mySynth
 end
 
+local function getBaseBPMFromOpus(myOpus)
+    
+    local baseBPM = 120
+    
+    --search every event in every track for set_tempo in the song.[ch][1] position, then take song.[ch][3] 
+    for trackParser = 2,  #myOpus do
+        for eventParser = 1 , #myOpus[trackParser] do
+            if myOpus[trackParser][eventParser][1] == "set_tempo" then
+                
+                local rawBPM  = myOpus[trackParser][eventParser][3]
+                
+                baseBPM =  ( 6000000 / (rawBPM * .1) )
+                do return baseBPM end
+                
+            end
+        end
+    end
+   
+    
+    return baseBPM
+    
+end
 
 function SKCoronaSynth.returnMIDIScoreFromFile(myFile,myDirectory)
     
@@ -332,7 +353,11 @@ function SKCoronaSynth.returnMIDIScoreFromFile(myFile,myDirectory)
     
     io.close( fh )
     
-    -- local opusFormattedMIDI = MIDI.midi2opus(contents)
+    
+    local opusFormattedMIDI = MIDI.midi2opus(contents)
+    SKCoronaSynth.baseBPM = getBaseBPMFromOpus(opusFormattedMIDI)
+    opusFormattedMIDI = nil
+    
     local scoreFormattedMIDI = MIDI.midi2ms_score(contents)
     
     
@@ -507,7 +532,10 @@ SKCoronaSynth:newSynth("assets/sounds/samples/synths/440LoopDist.mp3",440)  --in
 
 --SKCoronaSynth.song = SKCoronaSynth.returnMIDIScoreFromFile("assets/MIDI/23gcb.mid", system.ResourceDirectory)
 local tracks 
+local speedFactor = 1
 function SKCoronaSynth:loadSong(myFileName, myDirectory)
+    
+    speedFactor = 1
     
     SKCoronaSynth.isOn = false
     tracks = {}
@@ -548,8 +576,26 @@ end
 
 
 
+-- the local speedFactor is a private variable that is used when trying to modify the BPM of a song
 
 
+
+function SKCoronaSynth.getTempo()
+    
+    return (SKCoronaSynth.baseBPM * speedFactor)
+    
+end
+
+function SKCoronaSynth:setTempo(newTempo)
+    print("New tempo: " .. newTempo)
+    --we need to change the speed factor, based on the song's original
+    --tempo to get the target 'newTempo'
+    local targetFactor = newTempo / SKCoronaSynth.baseBPM
+    
+    print("Speed multiplier: " .. targetFactor)
+    speedFactor = targetFactor
+    
+end
 
 local function listener(event)
     
@@ -562,7 +608,7 @@ local function listener(event)
     end
     
     
-  
+    
     
     
     deltaTime = event.time - lastTime
@@ -573,7 +619,7 @@ local function listener(event)
     
     
     lastTime = event.time
-    elapsedTime = (elapsedTime + deltaTime) 
+    elapsedTime = (elapsedTime + deltaTime * speedFactor ) 
     
     --now we should be able to loop through the score tracks, one at a time, and see if they need to be played:
     for trackParser = 2, #tracks do
@@ -592,7 +638,7 @@ local function listener(event)
                 --check to see if we need to play it yet:
                 local startTime = ( track1[1][2]     ) + musicStart   
                 --              print("Start time:" ..startTime , "lapse time:" .. elapsedTime)
-                local duration = track1[1][3] 
+                local duration = track1[1][3] / speedFactor --addition for cutting down the note durations if you cut the time between notes
                 local channel =  track1[1][4] + 1   --TODO  make sure we have a synth for each channel, otherwise we do not play
                 --  print("Channel: "..channel)
                 local noteNumber = track1[1][5]

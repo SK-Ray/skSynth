@@ -21,11 +21,12 @@ local skCoronaSynth  = require("SKCoronaSynth")
 --skCoronaSynth:loadSong("assets/MIDI/Three_Blind_Mice.mid", system.ResourceDirectory)  --Three blind mice
 --skCoronaSynth:loadSong("assets/MIDI/sbcatm.mid", system.ResourceDirectory)   -- She'll be coming 'round the mountain (Drums come in late in the song)
 --skCoronaSynth:loadSong("assets/MIDI/Red_River_Valley.mid", system.ResourceDirectory)   -- Red River Valley (+drums)
---skCoronaSynth:loadSong("assets/MIDI/Polly_Wolly_Doodle.mid", system.ResourceDirectory)   -- Polly Wolly Doodle (+drums)
+
+
+
 
 local songs = 
 { 
-    {myName = "Gulf Coast Blues" , myFile = "assets/MIDI/23gcb.mid" , myFolder = "system.ResourceDirectory"},  --for some reason, the first item does not appear to be selectable 
     {myName = "Gulf Coast Blues" , myFile = "assets/MIDI/23gcb.mid" , myFolder = "system.ResourceDirectory"},
     {myName = "Dance of the Mother Goddess" , myFile = "assets/MIDI/Dance_of_the_Mother_Goddess.mid" , myFolder = "system.ResourceDirectory"},
     {myName = "Drum Song" , myFile = "assets/MIDI/Drum_Song.mid" , myFolder = "system.ResourceDirectory"},
@@ -36,6 +37,17 @@ local songs =
     
     
 }
+
+
+
+skCoronaSynth:loadSong(songs[3].myFile, songs[4].myFolder)  
+print("Current Tempo: " .. skCoronaSynth:getTempo())
+ skCoronaSynth:setTempo(120 )
+print("New Tempo:" .. skCoronaSynth:getTempo())
+skCoronaSynth.isOn = true
+
+
+
 local songText
 local function updateText(myTextObject, myNewtext)
     
@@ -146,6 +158,10 @@ local onRowTouch = function(event)
     if event.phase == "tap" or event.phase == "release" then
         
         skCoronaSynth:loadSong(event.target.params.myFile, event.target.params.myFolder) 
+        print("Tempo:" .. skCoronaSynth:getTempo())
+           
+
+        
         --   print("Loaded:" .. event.target.params.myName )
         updateText(songText,"Loaded:" .. event.target.params.myName )
         myStartButton.isOn = true
@@ -180,13 +196,6 @@ for i = 1, #songs do
     local rowColor = { default={ 1, 1, 1 }, over={ 1, 0.5, 0, 0.2 } }
     local lineColor = { 0.5, 0.5, 0.5 }
     
-    -- Make some rows categories
-    if ( i == 1 or i == 21 ) then
-        isCategory = true
-        rowHeight = 40
-        rowColor = { default={ 0.8, 0.8, 0.8, 0.8 } }
-        lineColor = { 1, 0, 0 }
-    end
     
     -- Insert a row into the tableView
     tableView:insertRow(
